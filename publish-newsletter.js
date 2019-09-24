@@ -28,30 +28,49 @@ function getMyEmailAddress() {
   return current_user;
 }
 
+// This function converts Google Doc to HTML and emails it to the recipients. 
 function ConvertGoogleDocToHtml(to_recipients, cc_recipients, bcc_recipients) {
   var body = DocumentApp.getActiveDocument().getBody();
   var numChildren = body.getNumChildren();
+  
+  // Output is where all the HTML  elements get pused onto.
   var output = [];
   var images = [];
   var listCounters = {};
   var success_msg = "Email has been sent to designated recipient(s) successfully!"
 
+  // The entire newsletter is inside a table. The opening table tag is added first.
   output.push('<table bgcolor="#fff" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;">')
+  
   // Walk through all the child elements of the body.
   for (var i = 0; i < numChildren; i++) {
+    
+    // Get the nth child element 
     var child = body.getChild(i);
+
+    // Push each HTML-converted element onto the output variable
+    // processItem is what converts paragraph styles from the Google Doc into HTML elements
     output.push(processItem(child, listCounters, images));
   }
+
+  // This is end of the email. This is the closing table tag.
   output.push('</table>');
   
+  // ??? What is this joining on?
   var html = output.join('\r');
+
+  // Email the HTML-converted elements
   emailHtml(html, images, to_recipients, cc_recipients, bcc_recipients);
   //createDocumentForHtml(html, images);
   return success_msg;
 }
 
+
+// Function emails HTML-converted elements
 function emailHtml(html, images, to_recipients, cc_recipients, bcc_recipients) {
   var attachments = [];
+
+  //??? Not sure why images get put into attachment list
   for (var j=0; j<images.length; j++) {
     attachments.push( {
       "fileName": images[j].name,
@@ -60,11 +79,15 @@ function emailHtml(html, images, to_recipients, cc_recipients, bcc_recipients) {
   }
 
   var inlineImages = {};
+  //??? Is this captioning each image by assigning image name to image blob?
   for (var j=0; j<images.length; j++) {
     inlineImages[[images[j].name]] = images[j].blob;
   }
 
+  // Gets the name of the document
   var name = DocumentApp.getActiveDocument().getName();
+  
+  // Sends the email
   MailApp.sendEmail({                                                                                
      to: to_recipients,
      cc: cc_recipients,
@@ -75,6 +98,7 @@ function emailHtml(html, images, to_recipients, cc_recipients, bcc_recipients) {
    });
 }
 
+//??? Have no clue that this function is going
 function createDocumentForHtml(html, images) {
   var name = DocumentApp.getActiveDocument().getName()+".html";
   var newDoc = DocumentApp.create(name);
@@ -84,6 +108,7 @@ function createDocumentForHtml(html, images) {
   newDoc.saveAndClose();
 }
 
+//??? Have no clue what this function does
 function dumpAttributes(atts) {
   // Log the paragraph attributes.
   for (var att in atts) {
@@ -102,11 +127,11 @@ function processItem(item, listCounters, images) {
     }
     // SUBTITLE == section title (e.g., key findings, observations)
     else if (item.getHeading() == DocumentApp.ParagraphHeading.SUBTITLE) {
-      prefix = '<tr><td bgcolor="#fff" style="padding: 20px 40px 20px 40px; text-align: left;"><h1 style="margin: 0; font-size: 20px; line-height: 26px; color: #727272; font-weight: bold;">', suffix = "</h1></td></tr>";
+      prefix = '<tr><td bgcolor="#fff" style="padding: 20px 40px 20px 40px; text-align: left;"><h1 style="margin: 0; font-size: 20px; line-height: 26px; color: #727272; font-weight: bold;">', suffix = "</h1></td></tr><table>";
     }
     // HEADING1 == full report button
     else if (item.getHeading() == DocumentApp.ParagraphHeading.HEADING1) {
-      prefix = '<tr><td align="center" valign="top" width="100%" bgcolor="#fff" style="background-size: cover; padding: 0px 15px 30px;" class="mobile-padding"><table border="0" cellpadding="0" cellspacing="0" align="center" width="100%" style="max-width: 600px"><tr><td align="center" valign="middle"><table><tr><td valign="top" align="center" style="text-align: center; padding: 20px 0px 0px 0px;"><center><table align="center" cellspacing="0" cellpadding="0" border="0" class="center-on-narrow" style="text-align: center;"><tr><td align="center" style="border-radius: 26px;" bgcolor="#4285f4"><a href="' + item.getLinkUrl() + '" target="_blank" style="font-size: 16px; color: #ffffff; text-decoration: none; border-radius: 26px; background-color: #4285f4; padding: 14px 26px; display: block; outline: none; border: none;" class="button-link center-on-narrow">';
+      prefix = '</table><tr><td align="center" valign="top" width="100%" bgcolor="#fff" style="background-size: cover; padding: 0px 15px 30px;" class="mobile-padding"><table border="0" cellpadding="0" cellspacing="0" align="center" width="100%" style="max-width: 600px"><tr><td align="center" valign="middle"><table><tr><td valign="top" align="center" style="text-align: center; padding: 20px 0px 0px 0px;"><center><table align="center" cellspacing="0" cellpadding="0" border="0" class="center-on-narrow" style="text-align: center;"><tr><td align="center" style="border-radius: 26px;" bgcolor="#4285f4"><a href="' + item.getLinkUrl() + '" target="_blank" style="font-size: 16px; color: #ffffff; text-decoration: none; border-radius: 26px; background-color: #4285f4; padding: 14px 26px; display: block; outline: none; border: none;" class="button-link center-on-narrow">';
       suffix = "</a></td></tr></table></center></td></tr></table></td></tr></table></td></tr>";
     }
     // HEADING2 == user quote
@@ -116,9 +141,15 @@ function processItem(item, listCounters, images) {
     }
     // HEADING3 && #ff0000 == key finding negative (red)
     else if (item.getHeading() == DocumentApp.ParagraphHeading.HEADING3 && item.getForegroundColor() == "#ff0000") {
-      prefix = '<tr><td bgcolor="#fff" style="padding: 0px 40px 20px 40px;"><table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="border:1px solid #ebebeb; border-left:3px solid #EA4335;"><tr><td align="" style="padding: 10px 5px 0px 15px; width: 30px"><img src="https://lh3.googleusercontent.com/PNGY9aoCbzbJ-wLQRMR-1lviyC7YAFCvu4P2exULqvVz7pfqSfIQJLImnzp_cEqDO65Ophcv42_wIXY3AQG9gyuvdoXvhTDOqbyX1jftex5uK4RvNk1gPBYtpW7uMT7XWYj5ySku" style="width: 30px; height: auto; padding: 0;"></td><td align="" style="padding: 10px 20px 0px 5px; color: #EA4335; text-align: left; font-weight:normal; width: 90%"><h3 style="margin:0; font-size: 16px;">';
-      suffix = "</h3></td></tr>";
+      prefix = '<tr border-spacing="0"><td  cellspacing="0" cellpadding="0"><h5>'; 
+      suffix = "</h5></td>";
     }
+
+     // HEADING3 && #000000 == website URL
+     else if (item.getHeading() == DocumentApp.ParagraphHeading.HEADING3 && item.getForegroundColor() == "#000000") {
+        prefix = '<td border-spacing="0" cellspacing="0" cellpadding="0"><h5>';
+        suffix = "</h5></td></tr>";
+      }
     // HEADING3 && #ff9900 == key finding neutral (orange)
     else if (item.getHeading() == DocumentApp.ParagraphHeading.HEADING3 && item.getForegroundColor() == "#ff9900") {
       prefix = '<tr><td bgcolor="#fff" style="padding: 0px 40px 20px 40px;"><table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="border:1px solid #ebebeb; border-left:3px solid #FBBC04;"><tr><td align="" style="padding: 10px 5px 0px 15px; width: 30px"><img src="https://lh3.googleusercontent.com/CWdzHKTzBUwj6O_wki91aUNXX0GM8mB3vjaVxHHW2zM8XnTx2HN5p_rRVWhIAUmsaEgtArIqpn3cxuoff_L52xC-InxNG1g3MDgSilLsLkBSbpmu5OpAbWOxTbbmQ3qtToV33NnL" style="width: 30px; height: auto; padding: 0;"></td><td align="" style="padding: 10px 20px 0px 5px; color: #FBBC04; text-align: left; font-weight:normal; width: 90%"><h3 style="margin:0; font-size: 16px;">';
